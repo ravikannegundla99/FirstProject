@@ -85,7 +85,7 @@ MODEL_CONFIGS = {
     }
 }
 
-def initialize_chat_model(provider, model):
+def initialize_chat_model(provider, model, temperature=0.7):
     """Initialize the chat model based on provider and model selection"""
     config = MODEL_CONFIGS[provider]
     api_key = os.getenv(config["api_key"])
@@ -99,27 +99,27 @@ def initialize_chat_model(provider, model):
             chat = config["class"](
                 model=model,
                 max_tokens=1000,
-                temperature=0,
+                temperature=temperature,
                 streaming=True
             )
         elif provider == "Anthropic":
             chat = config["class"](
                 model=model,
                 max_tokens=1000,
-                temperature=0,
+                temperature=temperature,
                 streaming=True
             )
         elif provider == "Google":
             chat = config["class"](
                 model=model,
                 max_output_tokens=4000,
-                temperature=0,
+                temperature=temperature,
                 streaming=True
             )
         elif provider == "Groq":
             chat = config["class"](
                 model=model,
-                temperature=0,
+                temperature=temperature,
                 streaming=True
             )
         
@@ -215,7 +215,7 @@ def compare_models(user_input, selected_models, streaming=False):
     for provider, model in selected_models:
         try:
             # Initialize the model
-            chat = initialize_chat_model(provider, model)
+            chat = initialize_chat_model(provider, model, comparison_temperature)
             if not chat:
                 results.append({
                     "provider": provider,
@@ -1205,6 +1205,25 @@ def main():
             help=f"Available models for {provider}"
         )
         
+        # Temperature Control
+        st.subheader("🌡️ Response Settings")
+        temperature = st.slider(
+            "Temperature (Creativity Level)",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7,
+            step=0.1,
+            help="Lower values = more focused/consistent responses\nHigher values = more creative/diverse responses"
+        )
+        
+        # Temperature explanation
+        if temperature <= 0.3:
+            st.info("🎯 **Focused Mode**: Responses will be more deterministic and consistent")
+        elif temperature <= 0.7:
+            st.info("⚖️ **Balanced Mode**: Good balance of creativity and consistency")
+        else:
+            st.info("🎨 **Creative Mode**: Responses will be more diverse and creative")
+        
         # Session settings (removed for cleaner UI - session info available in exports)
         
         # Check API key availability (hidden from UI)
@@ -1431,11 +1450,11 @@ def main():
         
     
     
-    # Initialize chat model if provider/model changed
-    current_config = f"{provider}_{model}"
+    # Initialize chat model if provider/model/temperature changed
+    current_config = f"{provider}_{model}_{temperature}"
     if f"current_config" not in st.session_state or st.session_state.current_config != current_config:
         with st.spinner(f"Initializing {provider} {model}..."):
-            st.session_state.chat_model = initialize_chat_model(provider, model)
+            st.session_state.chat_model = initialize_chat_model(provider, model, temperature)
             if st.session_state.chat_model:
                 # Initialize logger for this provider
                 config = MODEL_CONFIGS[provider]
@@ -1547,6 +1566,26 @@ def main():
                 else:
                     st.caption("📝 0/4000 characters")
                 
+                # Temperature Control for Comparison
+                st.subheader("🌡️ Response Settings")
+                comparison_temperature = st.slider(
+                    "Temperature (Creativity Level)",
+                    min_value=0.0,
+                    max_value=1.0,
+                    value=0.7,
+                    step=0.1,
+                    key="comparison_temperature",
+                    help="Lower values = more focused/consistent responses\nHigher values = more creative/diverse responses"
+                )
+                
+                # Temperature explanation for comparison
+                if comparison_temperature <= 0.3:
+                    st.info("🎯 **Focused Mode**: All models will give more deterministic responses")
+                elif comparison_temperature <= 0.7:
+                    st.info("⚖️ **Balanced Mode**: Good balance of creativity and consistency")
+                else:
+                    st.info("🎨 **Creative Mode**: All models will give more diverse responses")
+                
                 col1, col2 = st.columns([2, 1])
                 with col1:
                     compare_button = st.button("⚖️ Compare Models", type="primary", use_container_width=True)
@@ -1589,6 +1628,7 @@ def main():
                                 "Provider": result['provider'],
                                 "Model": result['model'],
                                 "Response Time (s)": f"{result['response_time']:.2f}",
+                                "Temperature": f"{comparison_temperature}",
                                 "Status": "✅ Success" if not result['error'] else "❌ Error"
                             })
                         
@@ -1652,13 +1692,15 @@ def main():
                 
                 # Display metrics
                 st.markdown("**📊 Response Metrics:**")
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.metric("Response Time", f"{response_time:.2f}s")
                 with col2:
                     st.metric("Provider", provider)
                 with col3:
                     st.metric("Model", model)
+                with col4:
+                    st.metric("Temperature", f"{temperature}")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Keep the user input visible (don't clear it automatically)
