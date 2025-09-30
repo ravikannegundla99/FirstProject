@@ -30,7 +30,7 @@ try:
     from reportlab.lib.units import inch
     from reportlab.lib import colors
     PDF_AVAILABLE = True
-    print("✅ PDF generation available - reportlab imported successfully")
+    # PDF generation available
 except ImportError as e:
     PDF_AVAILABLE = False
     print(f"❌ PDF generation not available. Import error: {e}")
@@ -215,7 +215,7 @@ def compare_models(user_input, selected_models, streaming=False):
     for provider, model in selected_models:
         try:
             # Initialize the model
-            chat = initialize_chat_model(provider, model, temperature)
+            chat = initialize_chat_model(provider, model, st.session_state.get('temperature', 0.7))
             if not chat:
                 results.append({
                     "provider": provider,
@@ -624,7 +624,7 @@ def export_conversation_pdf(session_data, provider):
         doc.build(story)
         buffer.seek(0)
         pdf_data = buffer.getvalue()
-        print(f"PDF generated successfully! Size: {len(pdf_data)} bytes")
+        # PDF generated successfully
         return pdf_data
         
     except Exception as e:
@@ -1207,14 +1207,21 @@ def main():
         
         # Temperature Control
         st.subheader("🌡️ Response Settings")
+        # Initialize temperature in session state if not exists
+        if 'temperature' not in st.session_state:
+            st.session_state.temperature = 0.7
+        
         temperature = st.slider(
             "Temperature (Creativity Level)",
             min_value=0.0,
             max_value=1.0,
-            value=0.7,
+            value=st.session_state.temperature,
             step=0.1,
             help="Lower values = more focused/consistent responses\nHigher values = more creative/diverse responses"
         )
+        
+        # Update session state
+        st.session_state.temperature = temperature
         
         # Temperature explanation
         if temperature <= 0.3:
@@ -1451,10 +1458,10 @@ def main():
     
     
     # Initialize chat model if provider/model/temperature changed
-    current_config = f"{provider}_{model}_{temperature}"
+    current_config = f"{provider}_{model}_{st.session_state.get('temperature', 0.7)}"
     if f"current_config" not in st.session_state or st.session_state.current_config != current_config:
         with st.spinner(f"Initializing {provider} {model}..."):
-            st.session_state.chat_model = initialize_chat_model(provider, model, temperature)
+            st.session_state.chat_model = initialize_chat_model(provider, model, st.session_state.get('temperature', 0.7))
             if st.session_state.chat_model:
                 # Initialize logger for this provider
                 config = MODEL_CONFIGS[provider]
@@ -1567,7 +1574,8 @@ def main():
                     st.caption("📝 0/4000 characters")
                 
                 # Use global temperature setting (no duplicate control needed)
-                st.info(f"🌡️ **Using Temperature**: {temperature} - {'Focused' if temperature <= 0.3 else 'Balanced' if temperature <= 0.7 else 'Creative'} Mode")
+                current_temp = st.session_state.get('temperature', 0.7)
+                st.info(f"🌡️ **Using Temperature**: {current_temp} - {'Focused' if current_temp <= 0.3 else 'Balanced' if current_temp <= 0.7 else 'Creative'} Mode")
                 
                 col1, col2 = st.columns([2, 1])
                 with col1:
@@ -1611,7 +1619,7 @@ def main():
                                 "Provider": result['provider'],
                                 "Model": result['model'],
                                 "Response Time (s)": f"{result['response_time']:.2f}",
-                                "Temperature": f"{temperature}",
+                                "Temperature": f"{st.session_state.get('temperature', 0.7)}",
                                 "Status": "✅ Success" if not result['error'] else "❌ Error"
                             })
                         
@@ -1683,7 +1691,7 @@ def main():
                 with col3:
                     st.metric("Model", model)
                 with col4:
-                    st.metric("Temperature", f"{temperature}")
+                    st.metric("Temperature", f"{st.session_state.get('temperature', 0.7)}")
                 st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Keep the user input visible (don't clear it automatically)

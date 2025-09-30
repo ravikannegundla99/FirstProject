@@ -43,9 +43,9 @@ Your app will be available at: `https://YOUR_APP_NAME.streamlit.app`
 
 ### ✅ Core Files (Must Include):
 - `app.py` - Entry point
-- `main_ui.py` - Main application
+- `main_ui.py` - Main application with temperature control
 - `main9.py` - LangChain integration
-- `requirements.txt` - Dependencies
+- `requirements.txt` - All dependencies (including langchain-community)
 - `.streamlit/config.toml` - Streamlit config
 - `.gitignore` - Exclude unnecessary files
 

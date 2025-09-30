@@ -245,7 +245,7 @@ def setup_langsmith():
     
     try:
         client = Client()
-        print("✅ LangSmith integration enabled")
+        # LangSmith integration enabled
         return client
     except Exception as e:
         print(f"❌ LangSmith setup failed: {e}")
