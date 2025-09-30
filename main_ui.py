@@ -215,7 +215,7 @@ def compare_models(user_input, selected_models, streaming=False):
     for provider, model in selected_models:
         try:
             # Initialize the model
-            chat = initialize_chat_model(provider, model, comparison_temperature)
+            chat = initialize_chat_model(provider, model, temperature)
             if not chat:
                 results.append({
                     "provider": provider,
@@ -1566,25 +1566,8 @@ def main():
                 else:
                     st.caption("📝 0/4000 characters")
                 
-                # Temperature Control for Comparison
-                st.subheader("🌡️ Response Settings")
-                comparison_temperature = st.slider(
-                    "Temperature (Creativity Level)",
-                    min_value=0.0,
-                    max_value=1.0,
-                    value=0.7,
-                    step=0.1,
-                    key="comparison_temperature",
-                    help="Lower values = more focused/consistent responses\nHigher values = more creative/diverse responses"
-                )
-                
-                # Temperature explanation for comparison
-                if comparison_temperature <= 0.3:
-                    st.info("🎯 **Focused Mode**: All models will give more deterministic responses")
-                elif comparison_temperature <= 0.7:
-                    st.info("⚖️ **Balanced Mode**: Good balance of creativity and consistency")
-                else:
-                    st.info("🎨 **Creative Mode**: All models will give more diverse responses")
+                # Use global temperature setting (no duplicate control needed)
+                st.info(f"🌡️ **Using Temperature**: {temperature} - {'Focused' if temperature <= 0.3 else 'Balanced' if temperature <= 0.7 else 'Creative'} Mode")
                 
                 col1, col2 = st.columns([2, 1])
                 with col1:
@@ -1628,7 +1611,7 @@ def main():
                                 "Provider": result['provider'],
                                 "Model": result['model'],
                                 "Response Time (s)": f"{result['response_time']:.2f}",
-                                "Temperature": f"{comparison_temperature}",
+                                "Temperature": f"{temperature}",
                                 "Status": "✅ Success" if not result['error'] else "❌ Error"
                             })
                         
